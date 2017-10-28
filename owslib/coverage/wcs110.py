@@ -191,18 +191,18 @@ class ServiceIdentification(object):
 
     def __init__(self, elem, nmSpc):
         self.service = 'WCS'
-
-        self.title = elem.find('ows:Title', nmSpc)
-        self.abstract = elem.find('ows:Abstract', nmSpc)
         self.keywords = [f.text for f in elem.findall('.//ows:Keyword', nmSpc)]
+
         attr = dict()
+        attr['title'] = elem.find('ows:Title', nmSpc)
+        attr['abstract'] = elem.find('ows:Abstract', nmSpc)
         attr['type'] = elem.find('ows:ServiceType', nmSpc)
         attr['version'] = elem.find('ows:ServiceTypeVersion', nmSpc)
         attr['fees'] = elem.find('ows:Fees', nmSpc)
         attr['accessConstraints'] = elem.find('ows:AccessConstraints', nmSpc)
 
         for key, val in attr.items():
-            setattr(self, key, val)
+            setattr(self, key, val.text)
 
 
 class ServiceProvider(object):
