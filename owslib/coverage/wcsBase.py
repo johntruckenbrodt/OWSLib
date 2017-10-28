@@ -17,8 +17,12 @@ except ImportError:
     from urllib.parse import urlencode
 from owslib.etree import etree
 import cgi
-from six.moves import cStringIO as StringIO
-import six
+import abc
+import os
+import re
+import ast
+import xml.etree.ElementTree as ET
+
 from owslib.util import openURL
 
 
@@ -37,39 +41,98 @@ class ServiceException(Exception):
     def __str__(self):
         return repr(self.message)
 
+
 class WCSBase(object):
-    """Base class to be subclassed by version dependent WCS classes. Provides 'high-level' version independent methods"""
-    def __new__(self,url, xml, cookies):
-        """ overridden __new__ method 
-        
-        @type url: string
-        @param url: url of WCS capabilities document
-        @type xml: string
-        @param xml: elementtree object
-        @return: inititalised WCSBase object
-        """
-        obj=object.__new__(self)
-        obj.__init__(url, xml, cookies)
-        self.cookies=cookies
-        self._describeCoverage = {} #cache for DescribeCoverage responses
-        return obj
-    
+    """
+    Base class to be subclassed by version dependent WCS classes. Provides 'high-level' version independent methods
+    """
+
+    # def __new__(self, url, xml, cookies):
+    #     """ overridden __new__ method
+    #
+    #     @type url: string
+    #     @param url: url of WCS capabilities document
+    #     @type xml: string
+    #     @param xml: elementtree object
+    #     @return: inititalised WCSBase object
+    #     """
+    #     obj = object.__new__(self)
+    #     obj.__init__(url, xml, cookies)
+    #     self.cookies = cookies
+    #     self._describeCoverage = {}  # cache for DescribeCoverage responses
+    #     return obj
+
     def __init__(self):
-        pass    
+
+        # build metadata objects:
+        self.updateSequence = self._capabilities.attrib.get('updateSequence')
+
+        # exceptions
+        self.exceptions = [f.text for f in self._capabilities.findall('Capability/Exception/Format')]
+
+    def __getitem__(self, name):
+        """
+        check contents dictionary to allow dict like access to service layers
+        """
+        if name in self.__getattribute__('contents').keys():
+            return self.__getattribute__('contents')[name]
+        else:
+            raise KeyError("No content named %s" % name)
 
     def getDescribeCoverage(self, identifier):
-        ''' returns a describe coverage document - checks the internal cache to see if it has been fetched before '''
+        """
+        returns a describe coverage document - checks the internal cache to see if it has been fetched before
+        """
         if identifier not in self._describeCoverage.keys():
             reader = DescribeCoverageReader(self.version, identifier, self.cookies)
             self._describeCoverage[identifier] = reader.read(self.url)
         return self._describeCoverage[identifier]
-        
-        
+
+    @abc.abstractmethod
+    def getCoverage(self):
+        raise NotImplementedError
+
+    def getOperationByName(self, name):
+        """Return a named operation item."""
+        for item in self.operations:
+            if item.name == name:
+                return item
+        raise KeyError("No operation named %s" % name)
+
+    def items(self):
+        """supports dict-like items() access"""
+        items = []
+        for item in self.contents:
+            items.append((item, self.contents[item]))
+        return items
+
+        # TO DECIDE: Offer repackaging of coverageXML/Multipart MIME output?
+        # def getData(self, directory='outputdir', outputfile='coverage.nc',  **kwargs):
+        # u=self.getCoverageRequest(**kwargs)
+        ##create the directory if it doesn't exist:
+        # try:
+        # os.mkdir(directory)
+        # except OSError, e:
+        ## Ignore directory exists error
+        # if e.errno <> errno.EEXIST:
+        # raise
+        ##elif wcs.version=='1.1.0':
+        ##Could be multipart mime or XML Coverages document, need to use the decoder...
+        # decoder=wcsdecoder.WCSDecoder(u)
+        # x=decoder.getCoverages()
+        # if type(x) is wcsdecoder.MpartMime:
+        # filenames=x.unpackToDir(directory)
+        ##print 'Files from 1.1.0 service written to %s directory'%(directory)
+        # else:
+        # filenames=x
+        # return filenames
+
+
 class WCSCapabilitiesReader(object):
     """Read and parses WCS capabilities document into a lxml.etree infoset
     """
 
-    def __init__(self, version=None, cookies = None):
+    def __init__(self, version=None, cookies=None):
         """Initialize
         @type version: string
         @param version: WCS Version parameter e.g '1.0.0'
@@ -122,6 +185,7 @@ class WCSCapabilitiesReader(object):
         """
         return etree.fromstring(st)
 
+
 class DescribeCoverageReader(object):
     """Read and parses WCS DescribeCoverage document into a lxml.etree infoset
     """
@@ -133,7 +197,7 @@ class DescribeCoverageReader(object):
         """
         self.version = version
         self._infoset = None
-        self.identifier=identifier
+        self.identifier = identifier
         self.cookies = cookies
 
     def descCov_url(self, service_url):
@@ -159,8 +223,8 @@ class DescribeCoverageReader(object):
             if 'coverage' not in params:
                 qs.append(('coverage', self.identifier))
         elif self.version == '1.1.0' or self.version == '1.1.1':
-            #NOTE: WCS 1.1.0 is ambigous about whether it should be identifier
-            #or identifiers (see tables 9, 10 of specification)  
+            # NOTE: WCS 1.1.0 is ambigous about whether it should be identifier
+            # or identifiers (see tables 9, 10 of specification)
             if 'identifiers' not in params:
                 qs.append(('identifiers', self.identifier))
             if 'identifier' not in params:
@@ -183,3 +247,51 @@ class DescribeCoverageReader(object):
         u = openURL(request, cookies=self.cookies, timeout=timeout)
         return etree.fromstring(u.read())
 
+
+class XMLHandler(object):
+    def __init__(self, xml):
+        errormessage = 'xmlfile must be a string pointing to an existing file, ' \
+                       'a string from which an xml can be parsed or a file object'
+        if 'readline' in dir(xml):
+            self.infile = xml.name if hasattr(xml, 'name') else None
+            xml.seek(0)
+            self.text = xml.read()
+            xml.seek(0)
+        elif isinstance(xml, str):
+            if os.path.isfile(xml):
+                self.infile = xml
+                with open(xml, 'r') as infile:
+                    self.text = infile.read()
+            else:
+                try:
+                    tree = ET.fromstring(xml)
+                    self.infile = None
+                    self.text = xml
+                    del tree
+                except ET.ParseError:
+                    raise IOError(errormessage)
+        else:
+            raise IOError(errormessage)
+        defs = re.findall('xmlns:[a-z0-9]+="[^"]*"', self.text)
+        dictstring = '{{{}}}'.format(re.sub(r'xmlns:([a-z0-9]*)=', r'"\1":', ', '.join(defs)))
+        self.namespaces = ast.literal_eval(dictstring)
+
+    def restoreNamespaces(self):
+        for key, val in self.namespaces.items():
+            val_new = val.split('/')[-1]
+            self.text = self.text.replace(key, val_new)
+
+    def write(self, outname, mode):
+        with open(outname, mode) as out:
+            out.write(self.text)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        return
+
+
+def getNamespaces(xmlfile):
+    with XMLHandler(xmlfile) as xml:
+        return xml.namespaces
