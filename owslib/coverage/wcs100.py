@@ -54,32 +54,25 @@ class WebCoverageService_1_0_0(WCSBase):
 
         # serviceIdentification metadata
         subelem = self._capabilities.find('wcs:Service', self.ns)
-        # subelem = self._capabilities.find(ns('Service'))
         self.identification = ServiceIdentification(subelem, self.ns)
 
         # serviceProvider metadata
         subelem = self._capabilities.find('wcs:Service/wcs:responsibleParty', self.ns)
-        # subelem = self._capabilities.find(ns('Service/') + ns('responsibleParty'))
         self.provider = ServiceProvider(subelem, self.ns)
 
         # serviceOperations metadata
         operations = self._capabilities.all('wcs:Capability/wcs:Request', self.ns)[:]
         self.operations = [OperationMetadata(x, self.ns) for x in operations]
-        # self.operations = []
-        # for elem in self._capabilities.find(ns('Capability/') + ns('Request'))[:]:
-        #     self.operations.append(OperationMetadata(elem))
 
         # serviceContents metadata
         self.contents = {}
         for elem in self._capabilities.findall('wcs:ContentMetadata/wcs:CoverageOfferingBrief', self.ns):
-        # for elem in self._capabilities.findall(ns('ContentMetadata/') + ns('CoverageOfferingBrief')):
             cm = ContentMetadata(elem, self, self.ns)
             self.contents[cm.id] = cm
 
         # Some WCS servers (wrongly) advertise 'Content' OfferingBrief instead.
         if self.contents == {}:
             for elem in self._capabilities.findall('wcs:ContentMetadata/wcs:ContentOfferingBrief', self.ns):
-            # for elem in self._capabilities.findall(ns('ContentMetadata/') + ns('ContentOfferingBrief')):
                 cm = ContentMetadata(elem, self, self.ns)
                 self.contents[cm.id] = cm
 
@@ -171,11 +164,9 @@ class OperationMetadata(object):
         # self.formatOptions = [f.text for f in elem.findall('{http://www.opengis.net/wcs/1.1/ows}Parameter/{http://www.opengis.net/wcs/1.1/ows}AllowedValues/{http://www.opengis.net/wcs/1.1/ows}Value')]
         self.methods = []
         for resource in elem.findall('wcs:DCPType/wcs:HTTP/wcs:Get/wcs:OnlineResource', nmSpc):
-        # for resource in elem.findall(ns('DCPType/') + ns('HTTP/') + ns('Get/') + ns('OnlineResource')):
             url = resource.attrib['{http://www.w3.org/1999/xlink}href']
             self.methods.append({'type': 'Get', 'url': url})
         for resource in elem.findall('wcs:DCPType/wcs:HTTP/wcs:Post/wcs:OnlineResource', nmSpc):
-        # for resource in elem.findall(ns('DCPType/') + ns('HTTP/') + ns('Post/') + ns('OnlineResource')):
             url = resource.attrib['{http://www.w3.org/1999/xlink}href']
             self.methods.append({'type': 'Post', 'url': url})
 
@@ -273,15 +264,11 @@ class ContentMetadata(object):
         if not hasattr(self, 'descCov'):
             self.descCov = self._service.getDescribeCoverage(self.id)
         gridelem = self.descCov.find('wcs:CoverageOffering/wcs:domainSet/wcs:spatialDomain/gml:RectifiedGrid', self.ns)
-        # gridelem = self.descCov.find(ns('CoverageOffering/') + ns('domainSet/') + ns(
-        #     'spatialDomain/') + '{http://www.opengis.net/gml}RectifiedGrid')
         if gridelem is not None:
             grid = RectifiedGrid(gridelem, self.ns)
         else:
             gridelem = self.descCov.find('wcs:CoverageOffering/wcs:domainSet/wcs:spatialDomain/gml:Grid', self.ns)
-            # gridelem = self.descCov.find(
-            #     ns('CoverageOffering/') + ns('domainSet/') + ns('spatialDomain/') + '{http://www.opengis.net/gml}Grid')
-            grid = Grid(gridelem)
+            grid = Grid(gridelem, self.ns)
         return grid
 
     grid = property(_getGrid, None)
@@ -297,8 +284,6 @@ class ContentMetadata(object):
             if not hasattr(self, 'descCov'):
                 self.descCov = self._service.getDescribeCoverage(self.id)
             for pos in self.descCov.findall('wcs:CoverageOffering/wcs:domainSet/wcs:temporalDomain/gml:timePosition', self.ns):
-            # for pos in self.descCov.findall(ns('CoverageOffering/') + ns('domainSet/') + ns(
-            #         'temporalDomain/') + '{http://www.opengis.net/gml}timePosition'):
                 timepoints.append(pos)
         if timepoints:
             timelimits = [timepoints[0].text, timepoints[1].text]
@@ -311,16 +296,14 @@ class ContentMetadata(object):
         if not hasattr(self, 'descCov'):
             self.descCov = self._service.getDescribeCoverage(self.id)
         for pos in self.descCov.findall('wcs:CoverageOffering/wcs:domainSet/wcs:temporalDomain/gml:timePosition', self.ns):
-        # for pos in self.descCov.findall(ns('CoverageOffering/') + ns('domainSet/') + ns(
-        #         'temporalDomain/') + '{http://www.opengis.net/gml}timePosition'):
             timepositions.append(pos.text)
         return timepositions
 
     timepositions = property(_getTimePositions, None)
 
     def _getOtherBoundingBoxes(self):
-        ''' incomplete, should return other bounding boxes not in WGS84
-            #TODO: find any other bounding boxes. Need to check for gml:EnvelopeWithTimePeriod.'''
+        """incomplete, should return other bounding boxes not in WGS84
+            #TODO: find any other bounding boxes. Need to check for gml:EnvelopeWithTimePeriod."""
 
         bboxes = []
 
@@ -328,8 +311,6 @@ class ContentMetadata(object):
             self.descCov = self._service.getDescribeCoverage(self.id)
 
         for envelope in self.descCov.findall('wcs:CoverageOffering/wcs:domainSet/wcs:spatialDomain/gml:Envelope', self.ns):
-        # for envelope in self.descCov.findall(ns('CoverageOffering/') + ns('domainSet/') + ns(
-        #         'spatialDomain/') + '{http://www.opengis.net/gml}Envelope'):
             bbox = {}
             bbox['nativeSrs'] = envelope.attrib['srsName']
             gmlpositions = envelope.findall('{http://www.opengis.net/gml}pos')
@@ -354,21 +335,6 @@ class ContentMetadata(object):
             for elem in self._service.getDescribeCoverage(self.id).findall(searchstring, self.ns):
                 for crs in elem.text.split(' '):
                     crss.append(Crs(crs))
-
-        # for elem in self._service.getDescribeCoverage(self.id).findall(
-        #                         ns('CoverageOffering/') + ns('supportedCRSs/') + ns('responseCRSs')):
-        #     for crs in elem.text.split(' '):
-        #         crss.append(Crs(crs))
-
-        # for elem in self._service.getDescribeCoverage(self.id).findall(
-        #                         ns('CoverageOffering/') + ns('supportedCRSs/') + ns('requestResponseCRSs')):
-        #     for crs in elem.text.split(' '):
-        #         crss.append(Crs(crs))
-
-        # for elem in self._service.getDescribeCoverage(self.id).findall(
-        #                         ns('CoverageOffering/') + ns('supportedCRSs/') + ns('nativeCRSs')):
-        #     for crs in elem.text.split(' '):
-        #         crss.append(Crs(crs))
         return crss
 
     supportedCRS = property(_getSupportedCRSProperty, None)
@@ -377,8 +343,6 @@ class ContentMetadata(object):
         # gets supported formats info
         frmts = []
         for elem in self._service.getDescribeCoverage(self.id).findall('wcs:CoverageOffering/wcs:supportedFormats/wcs:formats', self.ns):
-        # for elem in self._service.getDescribeCoverage(self.id).findall(
-        #                         ns('CoverageOffering/') + ns('supportedFormats/') + ns('formats')):
             frmts.append(elem.text)
         return frmts
 
@@ -388,9 +352,6 @@ class ContentMetadata(object):
         # gets any axis descriptions contained in the rangeset (requires a DescribeCoverage call to server).
         axisDescs = []
         for elem in self._service.getDescribeCoverage(self.id).findall('wcs:CoverageOffering/wcs:rangeSet/wcs:RangeSet/wcs:axisDescription/wcs:AxisDescription', self.ns):
-        # for elem in self._service.getDescribeCoverage(self.id).findall(
-        #                                         ns('CoverageOffering/') + ns('rangeSet/') + ns('RangeSet/') + ns(
-        #                         'axisDescription/') + ns('AxisDescription')):
             axisDescs.append(AxisDescription(elem))  # create a 'AxisDescription' object.
         return axisDescs
 
@@ -406,20 +367,16 @@ class Grid(object):
     Simple grid class to provide axis and value information for a gml grid
     """
 
-    def __init__(self, grid):
+    def __init__(self, grid, nmSpc):
         self.axislabels = []
         self.dimension = None
         self.lowlimits = []
         self.highlimits = []
         if grid is not None:
             self.dimension = int(grid.get('dimension'))
-            self.lowlimits = grid.find(
-                '{http://www.opengis.net/gml}limits/{http://www.opengis.net/gml}GridEnvelope/{http://www.opengis.net/gml}low').text.split(
-                ' ')
-            self.highlimits = grid.find(
-                '{http://www.opengis.net/gml}limits/{http://www.opengis.net/gml}GridEnvelope/{http://www.opengis.net/gml}high').text.split(
-                ' ')
-            for axis in grid.findall('{http://www.opengis.net/gml}axisName'):
+            self.lowlimits = grid.find('gml:limits/gml:GridEnvelope/gml:low', nmSpc).text.split(' ')
+            self.highlimits = grid.find('gml:limits/gml:GridEnvelope/gml:high', nmSpc).text.split(' ')
+            for axis in grid.findall('gml:axisName', nmSpc):
                 self.axislabels.append(axis.text)
 
 
@@ -429,13 +386,10 @@ class RectifiedGrid(Grid):
     """
 
     def __init__(self, rectifiedgrid, nmSpc):
-        super(RectifiedGrid, self).__init__(rectifiedgrid)
+        super(RectifiedGrid, self).__init__(rectifiedgrid, nmSpc)
         self.origin = rectifiedgrid.find('gml:origin/gml:pos', nmSpc).text.split()
-        # self.origin = rectifiedgrid.find(
-        #     '{http://www.opengis.net/gml}origin/{http://www.opengis.net/gml}pos').text.split()
         self.offsetvectors = []
         for offset in rectifiedgrid.findall('gml:offsetVector', nmSpc):
-        # for offset in rectifiedgrid.findall('{http://www.opengis.net/gml}offsetVector'):
             self.offsetvectors.append(offset.text.split())
 
 
