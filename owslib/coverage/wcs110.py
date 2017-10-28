@@ -233,13 +233,12 @@ class ContactMetadata(object):
 
         info['name'] = elem.find('.//ows:ServiceContact/ows:IndividualName', nmSpc)
         info['organization'] = elem.find('.//ows:ProviderName', nmSpc)
-        address = elem.find('.//ows:ServiceContact/ows:ContactInfo/ows:Address', nmSpc)
-        info['address'] = address.find('ows:DeliveryPoint', nmSpc) if address else None
-        info['city'] = address.find('ows:City', nmSpc) if address else None
-        info['region'] = address.find('ows:AdministrativeArea', nmSpc) if address else None
-        info['postcode'] = address.find('ows:PostalCode', nmSpc) if address else None
-        info['country'] = address.find('ows:Country', nmSpc) if address else None
-        info['email'] = address.find('ows:ElectronicMailAddress', nmSpc) if address else None
+        info['address'] = elem.find('ows:ServiceContact/ows:ContactInfo/ows:Address/ows:DeliveryPoint', nmSpc)
+        info['city'] = elem.find('ows:ServiceContact/ows:ContactInfo/ows:Address/ows:City', nmSpc)
+        info['region'] = elem.find('ows:ServiceContact/ows:ContactInfo/ows:Address/ows:AdministrativeArea', nmSpc)
+        info['postcode'] = elem.find('ows:ServiceContact/ows:ContactInfo/ows:Address/ows:PostalCode', nmSpc)
+        info['country'] = elem.find('ows:ServiceContact/ows:ContactInfo/ows:Address/ows:Country', nmSpc)
+        info['email'] = elem.find('ows:ServiceContact/ows:ContactInfo/ows:Address/ows:ElectronicMailAddress', nmSpc)
 
         for key, val in info.items():
                 setattr(self, key, val.text)
