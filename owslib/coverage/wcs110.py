@@ -259,7 +259,7 @@ class ContentMetadata(object):
         self._elem = elem
         self._parent = parent
         self.id = self._checkChildAndParent('.//wcs:Identifier', nmSpc)
-        self.description = self._checkChildAndParent(nmSpc.WCS('Description'), nmSpc)
+        self.description = self._checkChildAndParent('.//wcs:Description', nmSpc)
         self.title = self._checkChildAndParent('.//ows:Title', nmSpc)
         self.abstract = self._checkChildAndParent('.//ows:Abstract', nmSpc)
 
