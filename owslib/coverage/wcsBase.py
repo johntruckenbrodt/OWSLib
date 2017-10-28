@@ -70,6 +70,8 @@ class WCSBase(object):
         # exceptions
         self.exceptions = [f.text for f in self._capabilities.findall('Capability/Exception/Format')]
 
+        self._describeCoverage = {}
+
     def __getitem__(self, name):
         """
         check contents dictionary to allow dict like access to service layers
