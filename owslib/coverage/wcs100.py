@@ -41,9 +41,15 @@ class WebCoverageService_1_0_0(WCSBase):
         self.cookies = cookies
 
         reader = WCSCapabilitiesReader(self.version, cookies)
-        self.ns = getNamespaces(xml)
+
+        if xml:
+            self._capabilities = reader.readString(xml)
+            self.ns = getNamespaces(xml)
+        else:
+            self._capabilities = reader.read(url)
+            self.ns = getNamespaces(openURL(reader.capabilities_url(url), cookies=self.cookies))
+
         self.ns['wcs'] = 'http://www.opengis.net/wcs'
-        self._capabilities = reader.readString(xml) if xml else reader.read(url)
 
         # check for exceptions
         se = self._capabilities.find('ServiceException')

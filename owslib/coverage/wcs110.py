@@ -50,9 +50,15 @@ class WebCoverageService_1_1_0(WCSBase):
     def __init__(self, url, xml, cookies):
         # initialize from saved capability document or access the server
         reader = WCSCapabilitiesReader(self.version, cookies)
-        self.ns = getNamespaces(xml)
-        self.ns['wcs'] = 'http://www.opengis.net/wcs/1.1'
-        self._capabilities = reader.readString(xml) if xml else reader.read(url)
+
+        if xml:
+            self._capabilities = reader.readString(xml)
+            self.ns = getNamespaces(xml)
+        else:
+            self._capabilities = reader.read(url)
+            self.ns = getNamespaces(openURL(reader.capabilities_url(url), cookies=self.cookies))
+
+        self.ns['wcs'] = 'http://www.opengis.net/wcs'
 
         self.url = url
         self.cookies = cookies
