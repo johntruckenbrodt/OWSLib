@@ -67,7 +67,7 @@ class WebCoverageService_1_0_0(WCSBase):
         self.provider = ServiceProvider(subelem, self.ns)
 
         # serviceOperations metadata
-        operations = self._capabilities.all('wcs:Capability/wcs:Request', self.ns)[:]
+        operations = self._capabilities.findall('wcs:Capability/wcs:Request', self.ns)[:]
         self.operations = [OperationMetadata(x, self.ns) for x in operations]
 
         # serviceContents metadata
