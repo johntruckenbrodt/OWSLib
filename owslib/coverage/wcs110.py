@@ -273,7 +273,7 @@ class ContentMetadata(object):
 
         self.boundingBox = None  # needed for iContentMetadata harmonisation
         self.boundingBoxWGS84 = None
-        b = elem.findall('ows:WGS84BoundingBox', nmSpc)
+        b = elem.find('ows:WGS84BoundingBox', nmSpc)
         if b is not None:
             lc = b.find('ows:LowerCorner', nmSpc).text.split()
             uc = b.find('ows:UpperCorner', nmSpc).text.split()
