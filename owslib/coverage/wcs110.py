@@ -56,9 +56,9 @@ class WebCoverageService_1_1_0(WCSBase):
             self.ns = getNamespaces(xml)
         else:
             self._capabilities = reader.read(url)
-            self.ns = getNamespaces(openURL(reader.capabilities_url(url), cookies=self.cookies).read())
+            self.ns = getNamespaces(openURL(reader.capabilities_url(url), cookies=cookies).read())
 
-        self.ns['wcs'] = 'http://www.opengis.net/wcs'
+        self.ns['wcs'] = 'http://www.opengis.net/wcs/1.1'
 
         self.url = url
         self.cookies = cookies
