@@ -190,7 +190,7 @@ class ServiceIdentification(object):
         self.keywords = [f.text for f in elem.findall('wcs:keywords/wcs:keyword', nmSpc)]
         # note: differs from 'rights' in interface
         self.fees = elem.find('wcs:fees', nmSpc).text
-        self.accessConstraints = elem.find('accessConstraints', nmSpc).text
+        self.accessConstraints = elem.find('wcs:accessConstraints', nmSpc).text
 
 
 class ServiceProvider(object):
