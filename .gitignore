@@ -13,3 +13,4 @@ pytest_cov-*
 *.*~
 .cache
 .DS_Store
+.idea/
