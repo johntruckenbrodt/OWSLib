@@ -58,7 +58,7 @@ class WebCoverageService_1_1_0(WCSBase):
         self.cookies = cookies
 
         # check for exceptions
-        se = self._capabilities.find('.//ows:Exception')
+        se = self._capabilities.find('.//ows:Exception', self.ns)
 
         if se is not None:
             err_message = str(se.text).strip()
