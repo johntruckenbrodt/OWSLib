@@ -11,7 +11,7 @@
 
 from __future__ import (absolute_import, division, print_function)
 
-from owslib.coverage.wcsBase import WCSBase, ServiceException, WCSCapabilitiesReader, getNamespaces, ServiceIdentification, ContactMetadata
+from owslib.coverage.wcsBase import WCSBase, ServiceException, WCSCapabilitiesReader, getNamespaces, ServiceIdentification, ServiceProvider
 
 try:
     from urllib import urlencode

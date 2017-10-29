@@ -13,7 +13,7 @@
 
 from __future__ import (absolute_import, division, print_function)
 
-from .wcsBase import WCSBase, ServiceException, WCSCapabilitiesReader, getNamespaces, ServiceIdentification, ContactMetadata
+from .wcsBase import WCSBase, ServiceException, WCSCapabilitiesReader, getNamespaces, ServiceIdentification, ServiceProvider
 from owslib.util import openURL
 
 try:
