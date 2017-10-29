@@ -230,7 +230,7 @@ class ContactMetadata(object):
         info['email'] = elem.find('wcs:contactInfo/wcs:address/wcs:electronicMailAddress', nmSpc)
 
         for key, val in info.items():
-                setattr(self, key, val.text)
+            setattr(self, key, val.text if val is not None else None)
 
 
 class ContentMetadata(object):
