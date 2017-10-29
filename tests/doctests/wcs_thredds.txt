@@ -23,9 +23,7 @@ Imports
     >>> wcs.identification.keywords
     []
     >>> wcs.identification.fees
-    'NONE'
     >>> wcs.identification.accessConstraints
-    'NONE'
 
 #There is no 'ResponsibleParty' information in the NCEP/NAM capabilities document, so wcs.provider is empty.
 #but if there was you could do:

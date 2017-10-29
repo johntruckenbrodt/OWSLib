@@ -364,6 +364,34 @@ class ServiceProvider(object):
             self.url = self.name  # no obvious definitive place for url in wcs, repeat provider name?
 
 
+class OperationMetadata(object):
+    """Abstraction for WCS metadata.
+    Implements IMetadata.
+    """
+
+    def __init__(self, elem, nmSpc, version):
+        """."""
+        if version == '1.0.0':
+            self.name = elem.tag.split('}')[1]
+
+            # self.formatOptions = [f.text for f in elem.findall('{http://www.opengis.net/wcs/1.1/ows}Parameter/{http://www.opengis.net/wcs/1.1/ows}AllowedValues/{http://www.opengis.net/wcs/1.1/ows}Value')]
+            self.methods = []
+            for resource in elem.findall('wcs:DCPType/wcs:HTTP/wcs:Get/wcs:OnlineResource', nmSpc):
+                url = resource.attrib['{http://www.w3.org/1999/xlink}href']
+                self.methods.append({'type': 'Get', 'url': url})
+            for resource in elem.findall('wcs:DCPType/wcs:HTTP/wcs:Post/wcs:OnlineResource', nmSpc):
+                url = resource.attrib['{http://www.w3.org/1999/xlink}href']
+                self.methods.append({'type': 'Post', 'url': url})
+        elif version == '1.1.0':
+            self.name = elem.get('name')
+            self.formatOptions = [f.text for f in elem.findall('owcs:Parameter[@name="format"]/owcs:AllowedValues/owcs:Value', nmSpc)]
+            methods = []
+            for verb in elem.findall('owcs:DCP/owcs:HTTP/*', nmSpc):
+                url = verb.attrib['{{{}}}href'.format(nmSpc['xlink'])]
+                methods.append((verb.tag, {'url': url}))
+            self.methods = dict(methods)
+
+
 class XMLHandler(object):
     def __init__(self, xml):
         errormessage = 'xmlfile must be a string pointing to an existing file, ' \

@@ -11,7 +11,7 @@
 
 from __future__ import (absolute_import, division, print_function)
 
-from owslib.coverage.wcsBase import WCSBase, ServiceException, WCSCapabilitiesReader, getNamespaces, ServiceIdentification, ServiceProvider
+from owslib.coverage.wcsBase import WCSBase, ServiceException, WCSCapabilitiesReader, getNamespaces, ServiceIdentification, ServiceProvider, OperationMetadata
 
 try:
     from urllib import urlencode
@@ -68,7 +68,7 @@ class WebCoverageService_1_0_0(WCSBase):
 
         # serviceOperations metadata
         operations = self._capabilities.find('wcs:Capability/wcs:Request', self.ns)[:]
-        self.operations = [OperationMetadata(x, self.ns) for x in operations]
+        self.operations = [OperationMetadata(x, self.ns, self.version) for x in operations]
 
         # serviceContents metadata
         self.contents = {}
@@ -156,25 +156,6 @@ class WebCoverageService_1_0_0(WCSBase):
         u = openURL(base_url, data, method, self.cookies)
 
         return u
-
-
-class OperationMetadata(object):
-    """Abstraction for WCS metadata.   
-    Implements IMetadata.
-    """
-
-    def __init__(self, elem, nmSpc):
-        """."""
-        self.name = elem.tag.split('}')[1]
-
-        # self.formatOptions = [f.text for f in elem.findall('{http://www.opengis.net/wcs/1.1/ows}Parameter/{http://www.opengis.net/wcs/1.1/ows}AllowedValues/{http://www.opengis.net/wcs/1.1/ows}Value')]
-        self.methods = []
-        for resource in elem.findall('wcs:DCPType/wcs:HTTP/wcs:Get/wcs:OnlineResource', nmSpc):
-            url = resource.attrib['{http://www.w3.org/1999/xlink}href']
-            self.methods.append({'type': 'Get', 'url': url})
-        for resource in elem.findall('wcs:DCPType/wcs:HTTP/wcs:Post/wcs:OnlineResource', nmSpc):
-            url = resource.attrib['{http://www.w3.org/1999/xlink}href']
-            self.methods.append({'type': 'Post', 'url': url})
 
 
 class ContentMetadata(object):

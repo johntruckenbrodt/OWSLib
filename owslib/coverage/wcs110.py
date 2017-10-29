@@ -13,7 +13,7 @@
 
 from __future__ import (absolute_import, division, print_function)
 
-from .wcsBase import WCSBase, ServiceException, WCSCapabilitiesReader, getNamespaces, ServiceIdentification, ServiceProvider
+from .wcsBase import WCSBase, ServiceException, WCSCapabilitiesReader, getNamespaces, ServiceIdentification, ServiceProvider, OperationMetadata
 from owslib.util import openURL
 
 try:
@@ -84,7 +84,7 @@ class WebCoverageService_1_1_0(WCSBase):
         # serviceOperations
         self.operations = []
         for elem in self._capabilities.findall('owcs:OperationsMetadata/owcs:Operation', self.ns):
-            self.operations.append(Operation(elem, self.ns))
+            self.operations.append(OperationMetadata(elem, self.ns, self.version))
 
         # serviceContents: our assumption is that services use a top-level layer
         # as a metadata organizer, nothing more.
@@ -172,24 +172,6 @@ class WebCoverageService_1_1_0(WCSBase):
 
         u = openURL(base_url, data, method, self.cookies)
         return u
-
-
-class Operation(object):
-    """
-    Abstraction for operation metadata
-    Implements IOperationMetadata.
-    """
-    ns = Namespaces_1_1_0()
-
-    def __init__(self, elem, nmSpc):
-        self.name = elem.get('name')
-        self.formatOptions = [f.text for f in elem.findall('owcs:Parameter[@name="format"]/owcs:AllowedValues/owcs:Value', nmSpc)]
-        methods = []
-
-        for verb in elem.findall('owcs:DCP/owcs:HTTP/*', nmSpc):
-            url = verb.attrib['{{{}}}href'.format(nmSpc['xlink'])]
-            methods.append((verb.tag, {'url': url}))
-        self.methods = dict(methods)
 
 
 class ContentMetadata(object):

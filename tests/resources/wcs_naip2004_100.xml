@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<WCS_Capabilities xmlns="http://www.opengis.net/wcs"
+ xmlns:gml="http://www.opengis.net/gml"
+ xmlns:xlink="http://www.w3.org/1999/xlink"
+ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xsi:schemaLocation="http://www.opengis.net/wcs http://schemas.opengeospatial.net/wcs/1.0.0/wcsCapabilities.xsd" version="1.0.0">
+  <Service>
+    <description>2004 USDA 1 meter NAIP for Mississippi - uncached</description>
+    <name>NAIP2004</name>
+    <label>NAIP_NAIP2004</label>
+    <responsibleParty>
+      <organisationName></organisationName>
+      <contactInfo>
+        <phone>
+        </phone>
+        <address>
+        </address>
+        <onlineResource xlink:href="http://www.maris.state.ms.us/arcgis/services/NAIP/NAIP2004/ImageServer/WCSServer"/>
+      </contactInfo>
+    </responsibleParty>
+    <fees>NONE</fees>
+    <accessConstraints>None</accessConstraints>
+  </Service>
+  <Capability>
+    <Request>
+      <GetCapabilities>
+        <DCPType><HTTP><Get><OnlineResource xlink:type ="simple" xlink:href="http://www.maris.state.ms.us/arcgis/services/NAIP/NAIP2004/ImageServer/WCSServer?"/></Get></HTTP></DCPType>
+        <DCPType><HTTP><Post><OnlineResource xlink:type ="simple" xlink:href="http://www.maris.state.ms.us/arcgis/services/NAIP/NAIP2004/ImageServer/WCSServer?"/></Post></HTTP></DCPType>
+      </GetCapabilities>
+      <DescribeCoverage>
+        <DCPType><HTTP><Get><OnlineResource xlink:type ="simple" xlink:href="http://www.maris.state.ms.us/arcgis/services/NAIP/NAIP2004/ImageServer/WCSServer?"/></Get></HTTP></DCPType>
+        <DCPType><HTTP><Post><OnlineResource xlink:type ="simple" xlink:href="http://www.maris.state.ms.us/arcgis/services/NAIP/NAIP2004/ImageServer/WCSServer?"/></Post></HTTP></DCPType>
+      </DescribeCoverage>
+      <GetCoverage>
+        <DCPType><HTTP><Get><OnlineResource xlink:type ="simple" xlink:href="http://www.maris.state.ms.us/arcgis/services/NAIP/NAIP2004/ImageServer/WCSServer?"/></Get></HTTP></DCPType>
+        <DCPType><HTTP><Post><OnlineResource xlink:type ="simple" xlink:href="http://www.maris.state.ms.us/arcgis/services/NAIP/NAIP2004/ImageServer/WCSServer?"/></Post></HTTP></DCPType>
+      </GetCoverage>
+    </Request>
+    <Exception>
+      <Format>application/vnd.ogc.se_xml</Format>
+    </Exception>
+  </Capability>
+  <ContentMetadata>
+    <CoverageOfferingBrief>
+    <description>NAIP2004</description>
+    <name>1</name>
+    <label>NAIP2004_1</label>
+    <lonLatEnvelope srsName="urn:ogc:def:crs:OGC:1.3:CRS84">
+      <gml:pos dimension="2">-91.780602877930107 30.10214691611138</gml:pos>
+      <gml:pos dimension="2">-88.041110785317343 35.018683002725616</gml:pos>
+    </lonLatEnvelope>
+    </CoverageOfferingBrief>
+  </ContentMetadata>
+</WCS_Capabilities>
