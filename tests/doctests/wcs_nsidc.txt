@@ -16,6 +16,8 @@ Imports
     'http://nsidc.org/cgi-bin/atlas_north'
     >>> wcs.version
     '1.1.0'
+
+#Service Identification
     >>> wcs.identification.service
     'WCS'
     >>> wcs.identification.version
@@ -33,25 +35,36 @@ Imports
     >>> wcs.identification.accessConstraints
     'none'
 
-#There is no 'ResponsibleParty' information in the NCEP/NAM capabilities document, so wcs.provider is empty.
-#but if there was you could do:
-#wcs.provider.url
-#and..
-#wcs.provider.contact.organization
-#wcs.provider.contact.email
-#wcs.provider.contact.address
-#etc... for region, city, postcode, country
+#Service Provider
+    >>> wcs.provider.contact.name
+    'NSIDC User Services'
+    >>> wcs.provider.contact.organization
+    'National Snow and Ice Data Center'
+    >>> wcs.provider.contact.address
+    'CIRES, 449 UCB, University of Colorado'
+    >>> wcs.provider.contact.city
+    'Boulder'
+    >>> wcs.provider.contact.region
+    'CO'
+    >>> wcs.provider.contact.postcode
+    '80309-0449'
+    >>> wcs.provider.contact.country
+    'USA'
+    >>> wcs.provider.contact.email
+    'nsidc@nsidc.org'
+
 
 Print the ids of all layers (actually just the first 3):
    >>> sorted(wcs.contents.keys())
    ['greenland_accumulation', 'greenland_bedrock_elevation', 'greenland_elevation', 'greenland_ice_thickness', 'greenland_surface_melt', 'sea_ice_concentration_01', 'sea_ice_concentration_02', 'sea_ice_concentration_03', 'sea_ice_concentration_04', 'sea_ice_concentration_05', 'sea_ice_concentration_06', 'sea_ice_concentration_07', 'sea_ice_concentration_08', 'sea_ice_concentration_09', 'sea_ice_concentration_10', 'sea_ice_concentration_11', 'sea_ice_concentration_12', 'seasonal_snow_classification', 'snow_extent_01', 'snow_extent_02', 'snow_extent_03', 'snow_extent_04', 'snow_extent_05', 'snow_extent_06', 'snow_extent_07', 'snow_extent_08', 'snow_extent_09', 'snow_extent_10', 'snow_extent_11', 'snow_extent_12', 'snow_water_equivalent_01', 'snow_water_equivalent_02', 'snow_water_equivalent_03', 'snow_water_equivalent_04', 'snow_water_equivalent_05', 'snow_water_equivalent_06', 'snow_water_equivalent_07', 'snow_water_equivalent_08', 'snow_water_equivalent_09', 'snow_water_equivalent_10', 'snow_water_equivalent_11', 'snow_water_equivalent_12']
 
 
-#To further interrogate a single "coverage" get the coverageMetadata object
-#You can either do:
+#Content Metadata
+    #To further interrogate a single "coverage" get the coverageMetadata object
+    #You can either do:
     >>> cvg= wcs.contents['sea_ice_concentration_09'] #to get it from the dictonary
 
-#or even simpler you can do:
+    #or even simpler you can do:
     >>> cvg=wcs['sea_ice_concentration_09']
 
     >>> cvg.boundingBoxWGS84
