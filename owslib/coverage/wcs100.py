@@ -11,7 +11,7 @@
 
 from __future__ import (absolute_import, division, print_function)
 
-from owslib.coverage.wcsBase import WCSBase, ServiceException, WCSCapabilitiesReader, getNamespaces
+from owslib.coverage.wcsBase import WCSBase, ServiceException, WCSCapabilitiesReader, getNamespaces, ServiceIdentification, ContactMetadata
 
 try:
     from urllib import urlencode
@@ -60,11 +60,11 @@ class WebCoverageService_1_0_0(WCSBase):
 
         # serviceIdentification metadata
         subelem = self._capabilities.find('wcs:Service', self.ns)
-        self.identification = ServiceIdentification(subelem, self.ns)
+        self.identification = ServiceIdentification(subelem, self.ns, self.version)
 
         # serviceProvider metadata
         subelem = self._capabilities.find('wcs:Service/wcs:responsibleParty', self.ns)
-        self.provider = ServiceProvider(subelem, self.ns)
+        self.provider = ServiceProvider(subelem, self.ns, self.version)
 
         # serviceOperations metadata
         operations = self._capabilities.find('wcs:Capability/wcs:Request', self.ns)[:]
@@ -177,27 +177,11 @@ class OperationMetadata(object):
             self.methods.append({'type': 'Post', 'url': url})
 
 
-class ServiceIdentification(object):
-    """ Abstraction for ServiceIdentification metadata """
-
-    def __init__(self, elem, nmSpc):
-        # properties              
-        self.type = 'OGC:WCS'
-        self.version = '1.0.0'
-        self.service = testXMLValue(elem.find('wcs:name', nmSpc))
-        self.abstract = testXMLValue(elem.find('wcs:description', nmSpc))
-        self.title = testXMLValue(elem.find('wcs:label', nmSpc))
-        self.keywords = [f.text for f in elem.findall('wcs:keywords/wcs:keyword', nmSpc)]
-        # note: differs from 'rights' in interface
-        self.fees = elem.find('wcs:fees', nmSpc).text
-        self.accessConstraints = elem.find('wcs:accessConstraints', nmSpc).text
-
-
 class ServiceProvider(object):
     """ Abstraction for WCS ResponsibleParty 
     Implements IServiceProvider"""
 
-    def __init__(self, elem, nmSpc):
+    def __init__(self, elem, nmSpc, version):
         # it's not uncommon for the service provider info to be missing
         # so handle case where None is passed in
         if elem is None:
@@ -207,30 +191,7 @@ class ServiceProvider(object):
         else:
             self.name = testXMLValue(elem.find('wcs:organisationName', nmSpc))
             self.url = self.name  # there is no definitive place for url  WCS, repeat organisationName
-            self.contact = ContactMetadata(elem, nmSpc)
-
-
-class ContactMetadata(object):
-    """
-    Abstraction for WCS ContactMetadata
-    implements IContactMetadata
-    """
-
-    def __init__(self, elem, nmSpc):
-
-        info = dict()
-
-        info['name'] = elem.find('wcs:individualName', nmSpc)
-        info['organization'] = elem.find('wcs:organisationName', nmSpc)
-        info['address'] = elem.find('wcs:contactInfo/wcs:address/wcs:deliveryPoint', nmSpc)
-        info['city'] = elem.find('wcs:contactInfo/wcs:address/wcs:city', nmSpc)
-        info['region'] = elem.find('wcs:contactInfo/wcs:address/wcs:administrativeArea', nmSpc)
-        info['postcode'] = elem.find('wcs:contactInfo/wcs:address/wcs:postalCode', nmSpc)
-        info['country'] = elem.find('wcs:contactInfo/wcs:address/wcs:country', nmSpc)
-        info['email'] = elem.find('wcs:contactInfo/wcs:address/wcs:electronicMailAddress', nmSpc)
-
-        for key, val in info.items():
-            setattr(self, key, val.text if val is not None else None)
+            self.contact = ContactMetadata(elem, nmSpc, version)
 
 
 class ContentMetadata(object):

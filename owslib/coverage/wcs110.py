@@ -13,7 +13,7 @@
 
 from __future__ import (absolute_import, division, print_function)
 
-from .wcsBase import WCSBase, ServiceException, WCSCapabilitiesReader, getNamespaces
+from .wcsBase import WCSBase, ServiceException, WCSCapabilitiesReader, getNamespaces, ServiceIdentification, ContactMetadata
 from owslib.util import openURL
 
 try:
@@ -75,11 +75,11 @@ class WebCoverageService_1_1_0(WCSBase):
 
         # serviceIdentification metadata
         elem = self._capabilities.find('owcs:ServiceIdentification', self.ns)
-        self.identification = ServiceIdentification(elem, self.ns)
+        self.identification = ServiceIdentification(elem, self.ns, self.version)
 
         # serviceProvider
         elem = self._capabilities.find('ows:ServiceProvider', self.ns)
-        self.provider = ServiceProvider(elem, self.ns)
+        self.provider = ServiceProvider(elem, self.ns, self.version)
 
         # serviceOperations
         self.operations = []
@@ -192,77 +192,20 @@ class Operation(object):
         self.methods = dict(methods)
 
 
-class ServiceIdentification(object):
-    """
-    Abstraction for WCS ServiceIdentification Metadata
-    implements IServiceIdentificationMetadata
-    """
-
-    def __init__(self, elem, nmSpc):
-        self.service = 'WCS'
-        self.version = '1.1.0'
-        # supportedVersions = [v.text for v in elem.findall('owcs:ServiceTypeVersion', nmSpc)]
-
-        self.keywords = [f.text for f in elem.findall('.//ows:Keyword', nmSpc)]
-
-        attr = dict()
-        attr['title'] = elem.find('owcs:Title', nmSpc)
-        if attr['title'] is None:
-            attr['title'] = elem.find('ows:Title', nmSpc)
-        attr['abstract'] = elem.find('owcs:Abstract', nmSpc)
-        if attr['abstract'] is None:
-            attr['abstract'] = elem.find('ows:Abstract', nmSpc)
-        attr['type'] = elem.find('owcs:ServiceType', nmSpc)
-        attr['fees'] = elem.find('owcs:Fees', nmSpc)
-        attr['accessConstraints'] = elem.find('owcs:AccessConstraints', nmSpc)
-
-        for key, val in attr.items():
-            if (val is not None and val.text.lower() == 'none') or val is None:
-                setattr(self, key, None)
-            else:
-                setattr(self, key, val.text)
-
-
 class ServiceProvider(object):
     """
     Abstraction for WCS ServiceProvider Metadata
     implements IServiceProviderMetadata
     """
 
-    def __init__(self, elem, nmSpc):
+    def __init__(self, elem, nmSpc, version):
         name = elem.find('ows:ServiceProvider', nmSpc)
 
         self.name = name.text if name else None
 
         # self.contact=ServiceContact(elem.find(nmSpc.OWS('ServiceContact')))
-        self.contact = ContactMetadata(elem, nmSpc)
+        self.contact = ContactMetadata(elem, nmSpc, version)
         self.url = self.name  # no obvious definitive place for url in wcs, repeat provider name?
-
-
-class ContactMetadata(object):
-    """
-    Abstraction for WCS ContactMetadata
-    implements IContactMetadata
-    """
-
-    def __init__(self, elem, nmSpc):
-
-        info = dict()
-
-        info['name'] = elem.find('.//ows:ServiceContact/ows:IndividualName', nmSpc)
-        info['organization'] = elem.find('.//ows:ProviderName', nmSpc)
-        info['address'] = elem.find('ows:ServiceContact/ows:ContactInfo/ows:Address/ows:DeliveryPoint', nmSpc)
-        info['city'] = elem.find('ows:ServiceContact/ows:ContactInfo/ows:Address/ows:City', nmSpc)
-        info['region'] = elem.find('ows:ServiceContact/ows:ContactInfo/ows:Address/ows:AdministrativeArea', nmSpc)
-        info['postcode'] = elem.find('ows:ServiceContact/ows:ContactInfo/ows:Address/ows:PostalCode', nmSpc)
-        info['country'] = elem.find('ows:ServiceContact/ows:ContactInfo/ows:Address/ows:Country', nmSpc)
-        info['email'] = elem.find('ows:ServiceContact/ows:ContactInfo/ows:Address/ows:ElectronicMailAddress', nmSpc)
-
-        for key, val in info.items():
-            if (val is not None and val.text.lower() == 'none') or val is None:
-                setattr(self, key, None)
-            else:
-                setattr(self, key, val.text)
 
 
 class ContentMetadata(object):
