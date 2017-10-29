@@ -23,8 +23,7 @@ import re
 import ast
 import xml.etree.ElementTree as ET
 
-from owslib.util import openURL
-
+from owslib.util import openURL, testXMLValue
 
 class ServiceException(Exception):
     """WCS ServiceException
@@ -248,6 +247,93 @@ class DescribeCoverageReader(object):
         request = self.descCov_url(service_url)
         u = openURL(request, cookies=self.cookies, timeout=timeout)
         return etree.fromstring(u.read())
+
+
+class ServiceIdentification(object):
+    """
+    Abstraction for WCS ServiceIdentification Metadata
+    implements IServiceIdentificationMetadata
+    """
+
+    def __init__(self, elem, nmSpc, version):
+
+        self.version = version
+
+        attr = dict()
+        if version == '1.0.0':
+            self.type = 'OGC:WCS'
+            self.keywords = [f.text for f in elem.findall('wcs:keywords/wcs:keyword', nmSpc)]
+
+            attr['service'] = testXMLValue(elem.find('wcs:name', nmSpc))
+            attr['abstract'] = testXMLValue(elem.find('wcs:description', nmSpc))
+            attr['title'] = testXMLValue(elem.find('wcs:label', nmSpc))
+
+            # note: differs from 'rights' in interface
+            attr['fees'] = elem.find('wcs:fees', nmSpc).text
+            attr['accessConstraints'] = elem.find('wcs:accessConstraints', nmSpc).text
+
+        elif version == '1.1.0':
+            self.service = 'WCS'
+            # supportedVersions = [v.text for v in elem.findall('owcs:ServiceTypeVersion', nmSpc)]
+
+            self.keywords = [f.text for f in elem.findall('.//ows:Keyword', nmSpc)]
+
+            attr['title'] = testXMLValue(elem.find('owcs:Title', nmSpc))
+            if attr['title'] is None:
+                attr['title'] = testXMLValue(elem.find('ows:Title', nmSpc))
+            attr['abstract'] = testXMLValue(elem.find('owcs:Abstract', nmSpc))
+            if attr['abstract'] is None:
+                attr['abstract'] = testXMLValue(elem.find('ows:Abstract', nmSpc))
+            attr['type'] = elem.find('owcs:ServiceType', nmSpc)
+            attr['fees'] = elem.find('owcs:Fees', nmSpc)
+            attr['accessConstraints'] = elem.find('owcs:AccessConstraints', nmSpc)
+
+        for key, val in attr.items():
+            if val is not None and not isinstance(val, str):
+                val = val.text
+            if (isinstance(val, str) and val.lower() == 'none') or val is None:
+                setattr(self, key, None)
+            else:
+                setattr(self, key, val)
+
+
+class ContactMetadata(object):
+    """
+    Abstraction for WCS ContactMetadata
+    implements IContactMetadata
+    """
+
+    def __init__(self, elem, nmSpc, version):
+
+        info = dict()
+
+        if version == '1.0.0':
+            info['name'] = elem.find('wcs:individualName', nmSpc)
+            info['organization'] = elem.find('wcs:organisationName', nmSpc)
+            info['address'] = elem.find('wcs:contactInfo/wcs:address/wcs:deliveryPoint', nmSpc)
+            info['city'] = elem.find('wcs:contactInfo/wcs:address/wcs:city', nmSpc)
+            info['region'] = elem.find('wcs:contactInfo/wcs:address/wcs:administrativeArea', nmSpc)
+            info['postcode'] = elem.find('wcs:contactInfo/wcs:address/wcs:postalCode', nmSpc)
+            info['country'] = elem.find('wcs:contactInfo/wcs:address/wcs:country', nmSpc)
+            info['email'] = elem.find('wcs:contactInfo/wcs:address/wcs:electronicMailAddress', nmSpc)
+
+        elif version == '1.1.0':
+            info['name'] = elem.find('.//ows:ServiceContact/ows:IndividualName', nmSpc)
+            info['organization'] = elem.find('.//ows:ProviderName', nmSpc)
+            info['address'] = elem.find('ows:ServiceContact/ows:ContactInfo/ows:Address/ows:DeliveryPoint', nmSpc)
+            info['city'] = elem.find('ows:ServiceContact/ows:ContactInfo/ows:Address/ows:City', nmSpc)
+            info['region'] = elem.find('ows:ServiceContact/ows:ContactInfo/ows:Address/ows:AdministrativeArea', nmSpc)
+            info['postcode'] = elem.find('ows:ServiceContact/ows:ContactInfo/ows:Address/ows:PostalCode', nmSpc)
+            info['country'] = elem.find('ows:ServiceContact/ows:ContactInfo/ows:Address/ows:Country', nmSpc)
+            info['email'] = elem.find('ows:ServiceContact/ows:ContactInfo/ows:Address/ows:ElectronicMailAddress', nmSpc)
+
+        for key, val in info.items():
+            if val is not None and not isinstance(val, str):
+                val = val.text
+            if (isinstance(val, str) and val.lower() == 'none') or val is None:
+                setattr(self, key, None)
+            else:
+                setattr(self, key, val)
 
 
 class XMLHandler(object):
