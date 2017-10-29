@@ -60,6 +60,9 @@ class WebCoverageService_1_1_0(WCSBase):
 
         self.ns['wcs'] = 'http://www.opengis.net/wcs/1.1'
 
+        if 'owcs' not in self.ns.keys():
+            self.ns['owcs'] = self.ns['ows']
+
         self.url = url
         self.cookies = cookies
 
@@ -71,7 +74,7 @@ class WebCoverageService_1_1_0(WCSBase):
             raise ServiceException(err_message, xml)
 
         # serviceIdentification metadata
-        elem = self._capabilities.find('ows:ServiceIdentification', self.ns)
+        elem = self._capabilities.find('owcs:ServiceIdentification', self.ns)
         self.identification = ServiceIdentification(elem, self.ns)
 
         # serviceProvider
@@ -80,7 +83,7 @@ class WebCoverageService_1_1_0(WCSBase):
 
         # serviceOperations
         self.operations = []
-        for elem in self._capabilities.findall('ows:OperationsMetadata/ows:Operation', self.ns):
+        for elem in self._capabilities.findall('owcs:OperationsMetadata/owcs:Operation', self.ns):
             self.operations.append(Operation(elem, self.ns))
 
         # serviceContents: our assumption is that services use a top-level layer
@@ -180,10 +183,10 @@ class Operation(object):
 
     def __init__(self, elem, nmSpc):
         self.name = elem.get('name')
-        self.formatOptions = [f.text for f in elem.findall('ows:Parameter/ows:Value', nmSpc)]
+        self.formatOptions = [f.text for f in elem.findall('owcs:Parameter[@name="format"]/owcs:AllowedValues/owcs:Value', nmSpc)]
         methods = []
 
-        for verb in elem.findall('ows:DCP/ows:HTTP/ows:Get', nmSpc):
+        for verb in elem.findall('owcs:DCP/owcs:HTTP/*', nmSpc):
             url = verb.attrib['{{{}}}href'.format(nmSpc['xlink'])]
             methods.append((verb.tag, {'url': url}))
         self.methods = dict(methods)
@@ -197,18 +200,27 @@ class ServiceIdentification(object):
 
     def __init__(self, elem, nmSpc):
         self.service = 'WCS'
+        self.version = '1.1.0'
+        # supportedVersions = [v.text for v in elem.findall('owcs:ServiceTypeVersion', nmSpc)]
+
         self.keywords = [f.text for f in elem.findall('.//ows:Keyword', nmSpc)]
 
         attr = dict()
-        attr['title'] = elem.find('ows:Title', nmSpc)
-        attr['abstract'] = elem.find('ows:Abstract', nmSpc)
-        attr['type'] = elem.find('ows:ServiceType', nmSpc)
-        attr['version'] = elem.find('ows:ServiceTypeVersion', nmSpc)
-        attr['fees'] = elem.find('ows:Fees', nmSpc)
-        attr['accessConstraints'] = elem.find('ows:AccessConstraints', nmSpc)
+        attr['title'] = elem.find('owcs:Title', nmSpc)
+        if attr['title'] is None:
+            attr['title'] = elem.find('ows:Title', nmSpc)
+        attr['abstract'] = elem.find('owcs:Abstract', nmSpc)
+        if attr['abstract'] is None:
+            attr['abstract'] = elem.find('ows:Abstract', nmSpc)
+        attr['type'] = elem.find('owcs:ServiceType', nmSpc)
+        attr['fees'] = elem.find('owcs:Fees', nmSpc)
+        attr['accessConstraints'] = elem.find('owcs:AccessConstraints', nmSpc)
 
         for key, val in attr.items():
-            setattr(self, key, val.text)
+            if (val is not None and val.text.lower() == 'none') or val is None:
+                setattr(self, key, None)
+            else:
+                setattr(self, key, val.text)
 
 
 class ServiceProvider(object):
@@ -247,6 +259,9 @@ class ContactMetadata(object):
         info['email'] = elem.find('ows:ServiceContact/ows:ContactInfo/ows:Address/ows:ElectronicMailAddress', nmSpc)
 
         for key, val in info.items():
+            if (val is not None and val.text.lower() == 'none') or val is None:
+                setattr(self, key, None)
+            else:
                 setattr(self, key, val.text)
 
 
