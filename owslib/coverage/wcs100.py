@@ -185,8 +185,8 @@ class ServiceIdentification(object):
         self.type = 'OGC:WCS'
         self.version = '1.0.0'
         self.service = testXMLValue(elem.find('wcs:name', nmSpc))
-        self.abstract = testXMLValue(elem.find('description', nmSpc))
-        self.title = testXMLValue(elem.find('label', nmSpc))
+        self.abstract = testXMLValue(elem.find('wcs:description', nmSpc))
+        self.title = testXMLValue(elem.find('wcs:label', nmSpc))
         self.keywords = [f.text for f in elem.findall('wcs:keywords/wcs:keyword', nmSpc)]
         # note: differs from 'rights' in interface
         self.fees = elem.find('wcs:fees', nmSpc).text
