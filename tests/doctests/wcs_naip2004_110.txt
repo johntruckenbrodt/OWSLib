@@ -1,0 +1,49 @@
+Web Coverage Service: #This is an example that shows how to the OWSLib wcs client to make requests
+====================
+
+http://www.maris.state.ms.us/arcgis/services/NAIP/NAIP2004/ImageServer/WCSServer?service=WCS&request=GetCapabilities&version=1.1.0
+========
+
+Imports
+
+    >>> from __future__ import (absolute_import, division, print_function)
+    >>> from owslib.wcs import WebCoverageService
+    >>> from tests.utils import resource_file, scratch_file
+
+    >>> xml = open(resource_file('wcs_naip2004_110.xml')).read()
+    >>> wcs = WebCoverageService('', version='1.1.0', xml=xml)
+
+# Service Identification
+    >>> wcs.identification.service
+    'WCS'
+    >>> wcs.identification.version
+    '1.1.0'
+    >>> wcs.identification.type
+    'WCS'
+    >>> wcs.identification.title
+    'NAIP_NAIP2004'
+    >>> wcs.identification.abstract
+    >>> wcs.identification.keywords
+    []
+    >>> wcs.identification.fees
+    >>> wcs.identification.accessConstraints
+
+# Service Provider
+    >>> wcs.provider.contact.name
+    >>> wcs.provider.contact.organization
+    >>> wcs.provider.contact.address
+    >>> wcs.provider.contact.city
+    >>> wcs.provider.contact.region
+    >>> wcs.provider.contact.postcode
+    >>> wcs.provider.contact.country
+    >>> wcs.provider.contact.email
+
+# Operations
+    >>> wcs.getOperationByName('GetCoverage').formatOptions
+    ['image/GeoTIFF', 'image/NITF', 'image/JPEG', 'image/PNG', 'image/JPEG2000', 'image/HDF']
+    >>> wcs.getOperationByName('GetCoverage').methods
+    {'{http://www.opengis.net/wcs/1.1/ows}Get': {'url': 'http://www.maris.state.ms.us/arcgis/services/NAIP/NAIP2004/ImageServer/WCSServer'}, '{http://www.opengis.net/wcs/1.1/ows}Post': {'url': 'http://www.maris.state.ms.us/arcgis/services/NAIP/NAIP2004/ImageServer/WCSServer'}}
+    >>> wcs.getOperationByName('GetCapabilities').methods
+    {'{http://www.opengis.net/wcs/1.1/ows}Get': {'url': 'http://www.maris.state.ms.us/arcgis/services/NAIP/NAIP2004/ImageServer/WCSServer'}, '{http://www.opengis.net/wcs/1.1/ows}Post': {'url': 'http://www.maris.state.ms.us/arcgis/services/NAIP/NAIP2004/ImageServer/WCSServer'}}
+    >>> wcs.getOperationByName('DescribeCoverage').methods
+    {'{http://www.opengis.net/wcs/1.1/ows}Get': {'url': 'http://www.maris.state.ms.us/arcgis/services/NAIP/NAIP2004/ImageServer/WCSServer'}, '{http://www.opengis.net/wcs/1.1/ows}Post': {'url': 'http://www.maris.state.ms.us/arcgis/services/NAIP/NAIP2004/ImageServer/WCSServer'}}
