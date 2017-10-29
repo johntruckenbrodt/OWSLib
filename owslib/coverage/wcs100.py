@@ -177,23 +177,6 @@ class OperationMetadata(object):
             self.methods.append({'type': 'Post', 'url': url})
 
 
-class ServiceProvider(object):
-    """ Abstraction for WCS ResponsibleParty 
-    Implements IServiceProvider"""
-
-    def __init__(self, elem, nmSpc, version):
-        # it's not uncommon for the service provider info to be missing
-        # so handle case where None is passed in
-        if elem is None:
-            self.name = None
-            self.url = None
-            self.contact = None
-        else:
-            self.name = testXMLValue(elem.find('wcs:organisationName', nmSpc))
-            self.url = self.name  # there is no definitive place for url  WCS, repeat organisationName
-            self.contact = ContactMetadata(elem, nmSpc, version)
-
-
 class ContentMetadata(object):
     """
     Implements IContentMetadata

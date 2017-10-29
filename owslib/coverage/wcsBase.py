@@ -336,6 +336,34 @@ class ContactMetadata(object):
                 setattr(self, key, val)
 
 
+class ServiceProvider(object):
+    """
+    Abstraction for WCS ServiceProvider Metadata
+    implements IServiceProviderMetadata
+    """
+
+    def __init__(self, elem, nmSpc, version):
+        if version == '1.0.0':
+            # it's not uncommon for the service provider info to be missing
+            # so handle case where None is passed in
+            if elem is None:
+                self.name = None
+                self.url = None
+                self.contact = None
+            else:
+                self.name = testXMLValue(elem.find('wcs:organisationName', nmSpc))
+                self.url = self.name  # there is no definitive place for url  WCS, repeat organisationName
+                self.contact = ContactMetadata(elem, nmSpc, version)
+        elif version == '1.1.0':
+            name = elem.find('ows:ServiceProvider', nmSpc)
+
+            self.name = name.text if name else None
+
+            # self.contact=ServiceContact(elem.find(nmSpc.OWS('ServiceContact')))
+            self.contact = ContactMetadata(elem, nmSpc, version)
+            self.url = self.name  # no obvious definitive place for url in wcs, repeat provider name?
+
+
 class XMLHandler(object):
     def __init__(self, xml):
         errormessage = 'xmlfile must be a string pointing to an existing file, ' \

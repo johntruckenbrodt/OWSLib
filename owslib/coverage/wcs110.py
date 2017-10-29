@@ -192,22 +192,6 @@ class Operation(object):
         self.methods = dict(methods)
 
 
-class ServiceProvider(object):
-    """
-    Abstraction for WCS ServiceProvider Metadata
-    implements IServiceProviderMetadata
-    """
-
-    def __init__(self, elem, nmSpc, version):
-        name = elem.find('ows:ServiceProvider', nmSpc)
-
-        self.name = name.text if name else None
-
-        # self.contact=ServiceContact(elem.find(nmSpc.OWS('ServiceContact')))
-        self.contact = ContactMetadata(elem, nmSpc, version)
-        self.url = self.name  # no obvious definitive place for url in wcs, repeat provider name?
-
-
 class ContentMetadata(object):
     """
     Abstraction for WCS ContentMetadata
