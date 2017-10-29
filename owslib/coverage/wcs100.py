@@ -191,7 +191,8 @@ class ContentMetadata(object):
         self.defaulttimeposition = None
 
     # grid is either a gml:Grid or a gml:RectifiedGrid if supplied as part of the DescribeCoverage response.
-    def _getGrid(self):
+    @property
+    def grid(self):
         if not hasattr(self, 'descCov'):
             self.descCov = self._service.getDescribeCoverage(self.id)
         gridelem = self.descCov.find('wcs:CoverageOffering/wcs:domainSet/wcs:spatialDomain/gml:RectifiedGrid', self.ns)
@@ -202,10 +203,9 @@ class ContentMetadata(object):
             grid = Grid(gridelem, self.ns)
         return grid
 
-    grid = property(_getGrid, None)
-
     # timelimits are the start/end times, timepositions are all timepoints. WCS servers can declare one or both or neither of these.
-    def _getTimeLimits(self):
+    @property
+    def timelimits(self):
         timepoints, timelimits = [], []
         b = self._elem.find('wcs:lonLatEnvelope', self.ns)
         if b is not None:
@@ -220,9 +220,8 @@ class ContentMetadata(object):
             timelimits = [timepoints[0].text, timepoints[1].text]
         return timelimits
 
-    timelimits = property(_getTimeLimits, None)
-
-    def _getTimePositions(self):
+    @property
+    def timepositions(self):
         timepositions = []
         if not hasattr(self, 'descCov'):
             self.descCov = self._service.getDescribeCoverage(self.id)
@@ -230,9 +229,8 @@ class ContentMetadata(object):
             timepositions.append(pos.text)
         return timepositions
 
-    timepositions = property(_getTimePositions, None)
-
-    def _getOtherBoundingBoxes(self):
+    @property
+    def boundingboxes(self):
         """incomplete, should return other bounding boxes not in WGS84
             #TODO: find any other bounding boxes. Need to check for gml:EnvelopeWithTimePeriod."""
 
@@ -255,9 +253,8 @@ class ContentMetadata(object):
 
         return bboxes
 
-    boundingboxes = property(_getOtherBoundingBoxes, None)
-
-    def _getSupportedCRSProperty(self):
+    @property
+    def supportedCRS(self):
         # gets supported crs info
         crss = []
 
@@ -268,25 +265,21 @@ class ContentMetadata(object):
                     crss.append(Crs(crs))
         return crss
 
-    supportedCRS = property(_getSupportedCRSProperty, None)
-
-    def _getSupportedFormatsProperty(self):
+    @property
+    def supportedFormats(self):
         # gets supported formats info
         frmts = []
         for elem in self._service.getDescribeCoverage(self.id).findall('wcs:CoverageOffering/wcs:supportedFormats/wcs:formats', self.ns):
             frmts.append(elem.text)
         return frmts
 
-    supportedFormats = property(_getSupportedFormatsProperty, None)
-
-    def _getAxisDescriptionsProperty(self):
+    @property
+    def axisDescriptions(self):
         # gets any axis descriptions contained in the rangeset (requires a DescribeCoverage call to server).
         axisDescs = []
         for elem in self._service.getDescribeCoverage(self.id).findall('wcs:CoverageOffering/wcs:rangeSet/wcs:RangeSet/wcs:axisDescription/wcs:AxisDescription', self.ns):
             axisDescs.append(AxisDescription(elem))  # create a 'AxisDescription' object.
         return axisDescs
-
-    axisDescriptions = property(_getAxisDescriptionsProperty, None)
 
 
 # Adding classes to represent gml:grid and gml:rectifiedgrid. One of these is used for the cvg.grid property

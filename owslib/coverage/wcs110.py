@@ -231,7 +231,8 @@ class ContentMetadata(object):
         self.supportedFormats = [x.text for x in elem.findall('wcs:SupportedFormat', nmSpc)]
 
     # grid is either a gml:Grid or a gml:RectifiedGrid if supplied as part of the DescribeCoverage response.
-    def _getGrid(self):
+    @property
+    def grid(self):
         grid = None
         # TODO- convert this to 1.1 from 1.0
         # if not hasattr(self, 'descCov'):
@@ -244,10 +245,9 @@ class ContentMetadata(object):
         # grid=Grid(gridelem)
         return grid
 
-    grid = property(_getGrid, None)
-
     # time limits/postions require a describeCoverage request therefore only resolve when requested
-    def _getTimeLimits(self):
+    @property
+    def timelimits(self):
         timelimits = []
         for elem in self._service.getDescribeCoverage(self.id).findall(
                                         ns('CoverageDescription/') + ns('Domain/') + ns('TemporalDomain/') + ns(
@@ -256,13 +256,10 @@ class ContentMetadata(object):
             timelimits = [subelems[0].text, subelems[1].text]
         return timelimits
 
-    timelimits = property(_getTimeLimits, None)
-
     # TODO timepositions property
-    def _getTimePositions(self):
+    @property
+    def timepositions(self):
         return []
-
-    timepositions = property(_getTimePositions, None)
 
     def _checkChildAndParent(self, path, nmSpc):
         """
