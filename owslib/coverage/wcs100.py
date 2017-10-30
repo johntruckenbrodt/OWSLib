@@ -11,7 +11,8 @@
 
 from __future__ import (absolute_import, division, print_function)
 
-from owslib.coverage.wcsBase import WCSBase, ServiceException, WCSCapabilitiesReader, getNamespaces, ServiceIdentification, ServiceProvider, OperationMetadata, Grid, RectifiedGrid
+from owslib.coverage.wcsBase import WCSBase, ServiceException, WCSCapabilitiesReader, getNamespaces, \
+    ServiceIdentification, ServiceProvider, OperationMetadata, Grid, RectifiedGrid
 
 try:
     from urllib import urlencode
@@ -19,7 +20,6 @@ except ImportError:
     from urllib.parse import urlencode
 from owslib.util import openURL, testXMLValue
 from owslib.crs import Crs
-
 
 import logging
 from owslib.util import log
@@ -107,7 +107,8 @@ class WebCoverageService_1_0_0(WCSBase):
         if log.isEnabledFor(logging.DEBUG):
             log.debug(
                 'WCS 1.0.0 DEBUG: Parameters passed to GetCoverage: identifier=%s, bbox=%s, time=%s, format=%s, crs=%s, width=%s, height=%s, resx=%s, resy=%s, resz=%s, parameter=%s, method=%s, other_arguments=%s' % (
-                identifier, bbox, time, format, crs, width, height, resx, resy, resz, parameter, method, str(kwargs)))
+                    identifier, bbox, time, format, crs, width, height, resx, resy, resz, parameter, method,
+                    str(kwargs)))
 
         try:
             base_url = next((m.get('url') for m in self.getOperationByName('GetCoverage').methods if
@@ -194,8 +195,6 @@ class ContentMetadata(object):
     # grid is either a gml:Grid or a gml:RectifiedGrid if supplied as part of the DescribeCoverage response.
     @property
     def grid(self):
-        if not hasattr(self, 'descCov'):
-            self.descCov = self._service.getDescribeCoverage(self.id)
         gridelem = self.descCov.find('wcs:CoverageOffering/wcs:domainSet/wcs:spatialDomain/gml:RectifiedGrid', self.ns)
         if gridelem is not None:
             grid = RectifiedGrid(gridelem, self.ns, self.version)
@@ -207,26 +206,14 @@ class ContentMetadata(object):
     # timelimits are the start/end times, timepositions are all timepoints. WCS servers can declare one or both or neither of these.
     @property
     def timelimits(self):
-        timepoints, timelimits = [], []
-        b = self._elem.find('wcs:lonLatEnvelope', self.ns)
-        if b is not None:
-            timepoints = b.findall('gml:timePosition', self.ns)
-        else:
-            # have to make a describeCoverage request...
-            if not hasattr(self, 'descCov'):
-                self.descCov = self._service.getDescribeCoverage(self.id)
-            for pos in self.descCov.findall('wcs:CoverageOffering/wcs:domainSet/wcs:temporalDomain/gml:timePosition', self.ns):
-                timepoints.append(pos)
-        if timepoints:
-            timelimits = [timepoints[0].text, timepoints[1].text]
-        return timelimits
+        tp = self.timepositions
+        return (min(tp), max(tp))
 
     @property
     def timepositions(self):
         timepositions = []
-        if not hasattr(self, 'descCov'):
-            self.descCov = self._service.getDescribeCoverage(self.id)
-        for pos in self.descCov.findall('wcs:CoverageOffering/wcs:domainSet/wcs:temporalDomain/gml:timePosition', self.ns):
+        for pos in self.descCov.findall('wcs:CoverageOffering/wcs:domainSet/wcs:temporalDomain/gml:timePosition',
+                                        self.ns):
             timepositions.append(pos.text)
         return timepositions
 
@@ -237,13 +224,12 @@ class ContentMetadata(object):
 
         bboxes = []
 
-        if not hasattr(self, 'descCov'):
-            self.descCov = self._service.getDescribeCoverage(self.id)
+        sd = self.descCov.find('wcs:CoverageOffering/wcs:domainSet/wcs:spatialDomain', self.ns)
 
-        for envelope in self.descCov.findall('wcs:CoverageOffering/wcs:domainSet/wcs:spatialDomain/gml:Envelope', self.ns):
+        for envelope in sd.findall('gml:Envelope', self.ns) + sd.findall('wcs:EnvelopeWithTimePeriod', self.ns):
             bbox = {}
             bbox['nativeSrs'] = envelope.attrib['srsName']
-            gmlpositions = envelope.findall('{http://www.opengis.net/gml}pos')
+            gmlpositions = envelope.findall('gml:pos', self.ns)
             lc = gmlpositions[0].text.split()
             uc = gmlpositions[1].text.split()
             bbox['bbox'] = (
@@ -261,7 +247,7 @@ class ContentMetadata(object):
 
         for crstype in ['response', 'requestResponse', 'native']:
             searchstring = 'wcs:CoverageOffering/wcs:supportedCRSs/wcs:{}CRSs'.format(crstype)
-            for elem in self._service.getDescribeCoverage(self.id).findall(searchstring, self.ns):
+            for elem in self.descCov.findall(searchstring, self.ns):
                 for crs in elem.text.split(' '):
                     crss.append(Crs(crs))
         return crss
@@ -270,17 +256,28 @@ class ContentMetadata(object):
     def supportedFormats(self):
         # gets supported formats info
         frmts = []
-        for elem in self._service.getDescribeCoverage(self.id).findall('wcs:CoverageOffering/wcs:supportedFormats/wcs:formats', self.ns):
+        for elem in self.descCov.findall('wcs:CoverageOffering/wcs:supportedFormats/wcs:formats', self.ns):
             frmts.append(elem.text)
         return frmts
 
     @property
+    def supportedInterpolations(self):
+        methods = self.descCov.findall('wcs:CoverageOffering/wcs:supportedInterpolations/wcs:interpolationMethod',
+                                       self.ns)
+        return [x.text for x in methods if x.text.lower() != 'none']
+
+    @property
     def axisDescriptions(self):
         # gets any axis descriptions contained in the rangeset (requires a DescribeCoverage call to server).
-        axisDescs = []
-        for elem in self._service.getDescribeCoverage(self.id).findall('wcs:CoverageOffering/wcs:rangeSet/wcs:RangeSet/wcs:axisDescription/wcs:AxisDescription', self.ns):
-            axisDescs.append(AxisDescription(elem))  # create a 'AxisDescription' object.
-        return axisDescs
+        axisDescs = self.descCov.findall(
+            'wcs:CoverageOffering/wcs:rangeSet/wcs:RangeSet/wcs:axisDescription/wcs:AxisDescription', self.ns)
+        return [AxisDescription(x) for x in axisDescs]
+
+    @property
+    def descCov(self):
+        if not hasattr(self, '_descCov'):
+            self._descCov = self._service.getDescribeCoverage(self.id)
+        return self._descCov
 
 
 class AxisDescription(object):
