@@ -13,7 +13,7 @@
 
 from __future__ import (absolute_import, division, print_function)
 
-from .wcsBase import WCSBase, ServiceException, WCSCapabilitiesReader, getNamespaces, ServiceIdentification, ServiceProvider, OperationMetadata
+from .wcsBase import WCSBase, ServiceException, WCSCapabilitiesReader, getNamespaces, ServiceIdentification, ServiceProvider, OperationMetadata, RectifiedGrid, Grid
 from owslib.util import openURL
 
 try:
@@ -86,21 +86,15 @@ class WebCoverageService_1_1_0(WCSBase):
         for elem in self._capabilities.findall('owcs:OperationsMetadata/owcs:Operation', self.ns):
             self.operations.append(OperationMetadata(elem, self.ns, self.version))
 
-        # serviceContents: our assumption is that services use a top-level layer
-        # as a metadata organizer, nothing more.
+        # serviceContents: different possibilities for top-level layer as a metadata organizer
         self.contents = {}
-        top = self._capabilities.find('wcs:Contents/wcs:CoverageSummary', self.ns)
-        for elem in self._capabilities.findall('wcs:Contents/wcs:CoverageSummary/wcs:CoverageSummary', self.ns):
-            cm = ContentMetadata(elem, top, self, self.ns)
-            self.contents[cm.id] = cm
-
-        if self.contents == {}:
-            # non-hierarchical.
-            top = None
-            for elem in self._capabilities.findall('wcs:Contents/wcs:CoverageSummary', self.ns):
-                cm = ContentMetadata(elem, top, self, self.ns)
-                # make the describeCoverage requests to populate the supported formats/crs attributes
-                self.contents[cm.id] = cm
+        for topid in ['wcs:Contents/wcs:CoverageSummary', 'wcs:Contents']:
+            top = self._capabilities.find(topid, self.ns)
+            cs = top.findall('wcs:CoverageSummary', self.ns)
+            if len(cs) > 0:
+                cm = [ContentMetadata(elem, top, self, self.ns, self.version) for elem in cs]
+                self.contents = dict([(x.id, x) for x in cm])
+                break
 
         WCSBase.__init__(self)
 
@@ -180,10 +174,12 @@ class ContentMetadata(object):
     Implements IContentMetadata
     """
 
-    def __init__(self, elem, parent, service, nmSpc):
+    def __init__(self, elem, parent, service, nmSpc, version):
         """Initialize."""
         # TODO - examine the parent for bounding box info.
 
+        self.ns = nmSpc
+        self.version = version
         self._service = service
         self._elem = elem
         self._parent = parent
@@ -225,24 +221,26 @@ class ContentMetadata(object):
         self.crsOptions = None
 
         # SupportedCRS
-        self.supportedCRS = [Crs(x.text) for x in elem.findall('wcs:SupportedCRS', nmSpc)]
+        self.supportedCRS = [Crs(x.text) for x in elem.findall('.//wcs:SupportedCRS', nmSpc)]
+        if len(self.supportedCRS) == 0:
+            self.supportedCRS += [Crs(x.text) for x in parent.findall('wcs:SupportedCRS', nmSpc)]
 
         # SupportedFormats
-        self.supportedFormats = [x.text for x in elem.findall('wcs:SupportedFormat', nmSpc)]
+        self.supportedFormats = [x.text for x in elem.findall('.//wcs:SupportedFormat', nmSpc)]
+        if len(self.supportedFormats) == 0:
+            self.supportedFormats += [x.text for x in parent.findall('wcs:SupportedFormat', nmSpc)]
 
     # grid is either a gml:Grid or a gml:RectifiedGrid if supplied as part of the DescribeCoverage response.
     @property
     def grid(self):
-        grid = None
-        # TODO- convert this to 1.1 from 1.0
-        # if not hasattr(self, 'descCov'):
-        # self.descCov=self._service.getDescribeCoverage(self.id)
-        # gridelem= self.descCov.find(ns('CoverageOffering/')+ns('domainSet/')+ns('spatialDomain/')+'{http://www.opengis.net/gml}RectifiedGrid')
-        # if gridelem is not None:
-        # grid=RectifiedGrid(gridelem)
-        # else:
-        # gridelem=self.descCov.find(ns('CoverageOffering/')+ns('domainSet/')+ns('spatialDomain/')+'{http://www.opengis.net/gml}Grid')
-        # grid=Grid(gridelem)
+        if not hasattr(self, 'descCov'):
+            self.descCov = self._service.getDescribeCoverage(self.id)
+        gridelem = self.descCov.find('wcs:CoverageDescription/wcs:Domain/wcs:SpatialDomain', self.ns)
+
+        if gridelem.find('wcs:GridCRS/wcs:GridOrigin', self.ns) is not None:
+            grid = RectifiedGrid(gridelem, self.ns, self.version)
+        else:
+            grid = Grid(gridelem, self.ns, self.version)
         return grid
 
     # time limits/postions require a describeCoverage request therefore only resolve when requested

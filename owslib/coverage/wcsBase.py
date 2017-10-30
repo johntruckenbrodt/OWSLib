@@ -382,6 +382,7 @@ class OperationMetadata(object):
             for resource in elem.findall('wcs:DCPType/wcs:HTTP/wcs:Post/wcs:OnlineResource', nmSpc):
                 url = resource.attrib['{http://www.w3.org/1999/xlink}href']
                 self.methods.append({'type': 'Post', 'url': url})
+
         elif version == '1.1.0':
             self.name = elem.get('name')
             self.formatOptions = [f.text for f in elem.findall('owcs:Parameter[@name="format"]/owcs:AllowedValues/owcs:Value', nmSpc)]
@@ -390,6 +391,58 @@ class OperationMetadata(object):
                 url = verb.attrib['{{{}}}href'.format(nmSpc['xlink'])]
                 methods.append((verb.tag, {'url': url}))
             self.methods = dict(methods)
+
+
+# Adding classes to represent gml:grid and gml:rectifiedgrid. One of these is used for the cvg.grid property
+# (where cvg is a member of the contents dictionary)
+# There is no simple way to convert the offset values in a rectifiedgrid grid to real values without CRS understanding, therefore this is beyond the current scope of owslib, so the representation here is purely to provide access to the information in the GML.
+
+class Grid(object):
+    """
+    Simple grid class to provide axis and value information for a gml grid
+    """
+
+    def __init__(self, grid, nmSpc, version):
+        self.axislabels = []
+        self.dimension = None
+        self.lowlimits = []
+        self.highlimits = []
+
+        if version == '1.0.0':
+            if grid is not None:
+                self.dimension = int(grid.get('dimension'))
+                self.lowlimits = grid.find('gml:limits/gml:GridEnvelope/gml:low', nmSpc).text.split(' ')
+                self.highlimits = grid.find('gml:limits/gml:GridEnvelope/gml:high', nmSpc).text.split(' ')
+                for axis in grid.findall('gml:axisName', nmSpc):
+                    self.axislabels.append(axis.text)
+
+        elif version == '1.1.0':
+            if grid is not None:
+                bbox = grid.find('ows:BoundingBox[@crs="urn:ogc:def:crs:OGC::imageCRS"]', nmSpc)
+                self.lowlimits = bbox.find('ows:LowerCorner', nmSpc).text.split(' ')
+                self.highlimits = bbox.find('ows:UpperCorner', nmSpc).text.split(' ')
+
+        else:
+            raise NotImplementedError('version {} is yet to be implemented'.format(version))
+
+
+class RectifiedGrid(Grid):
+    """
+    RectifiedGrid class, extends Grid with additional offset vector information
+    """
+    def __init__(self, rectifiedgrid, nmSpc, version):
+        super(RectifiedGrid, self).__init__(rectifiedgrid, nmSpc, version)
+        if version == '1.0.0':
+            self.origin = rectifiedgrid.find('gml:origin/gml:pos', nmSpc).text.split()
+            self.offsetvectors = [tuple(x.text.split())
+                                  for x in rectifiedgrid.findall('gml:offsetVector', nmSpc)]
+        elif version == '1.1.0':
+            self.origin = rectifiedgrid.find('wcs:GridCRS/wcs:GridOrigin', nmSpc).text.split()
+            offsets = rectifiedgrid.find('wcs:GridCRS/wcs:GridOffsets', nmSpc).text.split()
+            self.offsetvectors = [(offsets[0], '0'), ('0', offsets[1])]
+
+        else:
+            raise NotImplementedError('version {} is yet to be implemented'.format(version))
 
 
 class XMLHandler(object):

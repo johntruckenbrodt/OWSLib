@@ -11,7 +11,7 @@
 
 from __future__ import (absolute_import, division, print_function)
 
-from owslib.coverage.wcsBase import WCSBase, ServiceException, WCSCapabilitiesReader, getNamespaces, ServiceIdentification, ServiceProvider, OperationMetadata
+from owslib.coverage.wcsBase import WCSBase, ServiceException, WCSCapabilitiesReader, getNamespaces, ServiceIdentification, ServiceProvider, OperationMetadata, Grid, RectifiedGrid
 
 try:
     from urllib import urlencode
@@ -73,13 +73,13 @@ class WebCoverageService_1_0_0(WCSBase):
         # serviceContents metadata
         self.contents = {}
         for elem in self._capabilities.findall('wcs:ContentMetadata/wcs:CoverageOfferingBrief', self.ns):
-            cm = ContentMetadata(elem, self, self.ns)
+            cm = ContentMetadata(elem, self, self.ns, self.version)
             self.contents[cm.id] = cm
 
         # Some WCS servers (wrongly) advertise 'Content' OfferingBrief instead.
         if self.contents == {}:
             for elem in self._capabilities.findall('wcs:ContentMetadata/wcs:ContentOfferingBrief', self.ns):
-                cm = ContentMetadata(elem, self, self.ns)
+                cm = ContentMetadata(elem, self, self.ns, self.version)
                 self.contents[cm.id] = cm
 
         WCSBase.__init__(self)
@@ -163,11 +163,12 @@ class ContentMetadata(object):
     Implements IContentMetadata
     """
 
-    def __init__(self, elem, service, nmSpc):
+    def __init__(self, elem, service, nmSpc, version):
         """Initialize. service is required so that describeCoverage requests may be made"""
         # TODO - examine the parent for bounding box info.
 
         self.ns = nmSpc
+        self.version = version
 
         # self._parent=parent
         self._elem = elem
@@ -197,10 +198,10 @@ class ContentMetadata(object):
             self.descCov = self._service.getDescribeCoverage(self.id)
         gridelem = self.descCov.find('wcs:CoverageOffering/wcs:domainSet/wcs:spatialDomain/gml:RectifiedGrid', self.ns)
         if gridelem is not None:
-            grid = RectifiedGrid(gridelem, self.ns)
+            grid = RectifiedGrid(gridelem, self.ns, self.version)
         else:
             gridelem = self.descCov.find('wcs:CoverageOffering/wcs:domainSet/wcs:spatialDomain/gml:Grid', self.ns)
-            grid = Grid(gridelem, self.ns)
+            grid = Grid(gridelem, self.ns, self.version)
         return grid
 
     # timelimits are the start/end times, timepositions are all timepoints. WCS servers can declare one or both or neither of these.
@@ -280,41 +281,6 @@ class ContentMetadata(object):
         for elem in self._service.getDescribeCoverage(self.id).findall('wcs:CoverageOffering/wcs:rangeSet/wcs:RangeSet/wcs:axisDescription/wcs:AxisDescription', self.ns):
             axisDescs.append(AxisDescription(elem))  # create a 'AxisDescription' object.
         return axisDescs
-
-
-# Adding classes to represent gml:grid and gml:rectifiedgrid. One of these is used for the cvg.grid property
-# (where cvg is a member of the contents dictionary)
-# There is no simple way to convert the offset values in a rectifiedgrid grid to real values without CRS understanding, therefore this is beyond the current scope of owslib, so the representation here is purely to provide access to the information in the GML.
-
-class Grid(object):
-    """
-    Simple grid class to provide axis and value information for a gml grid
-    """
-
-    def __init__(self, grid, nmSpc):
-        self.axislabels = []
-        self.dimension = None
-        self.lowlimits = []
-        self.highlimits = []
-        if grid is not None:
-            self.dimension = int(grid.get('dimension'))
-            self.lowlimits = grid.find('gml:limits/gml:GridEnvelope/gml:low', nmSpc).text.split(' ')
-            self.highlimits = grid.find('gml:limits/gml:GridEnvelope/gml:high', nmSpc).text.split(' ')
-            for axis in grid.findall('gml:axisName', nmSpc):
-                self.axislabels.append(axis.text)
-
-
-class RectifiedGrid(Grid):
-    """
-    RectifiedGrid class, extends Grid with additional offset vector information
-    """
-
-    def __init__(self, rectifiedgrid, nmSpc):
-        super(RectifiedGrid, self).__init__(rectifiedgrid, nmSpc)
-        self.origin = rectifiedgrid.find('gml:origin/gml:pos', nmSpc).text.split()
-        self.offsetvectors = []
-        for offset in rectifiedgrid.findall('gml:offsetVector', nmSpc):
-            self.offsetvectors.append(offset.text.split())
 
 
 class AxisDescription(object):
